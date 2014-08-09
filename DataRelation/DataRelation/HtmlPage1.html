@@ -1,0 +1,152 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0px;
+            padding: 0px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="myCanvas" width="1000" height="1000"></canvas>
+    <script>
+        var subRectWidth = 100;
+        var subRectHeight = 50;
+        function DrawText(pointx, str) {
+            var subRectWidth = 100;
+            var subRectHeight = 50;
+            var fontHeight = 20;
+            var canvas = document.getElementById('myCanvas');
+            var context = canvas.getContext('2d');
+            context.font = '20px Arial';
+            context.fillStyle = 'red';
+            var metrics = context.measureText(str);
+
+            context.fillText(str, pointx.x + (subRectWidth - metrics.width) / 2, pointx.y + fontHeight + (subRectHeight - fontHeight) / 2);
+        }
+        function DrawRect(rect, table) {
+            var canvas = document.getElementById('myCanvas');
+            var context = canvas.getContext('2d');
+            var subRectWidth = 100;
+            var subRectHeight = 50;
+            var interval = 20;
+            context.beginPath();
+            var sumHeight = interval * (table.tablecols.length + 1) + table.tablecols.length * subRectHeight;
+            context.rect(rect.x, rect.y, interval * 2 + subRectWidth, sumHeight);
+            context.fillStyle = 'white';
+            context.fill();
+            context.stroke();
+            for (var i = 0; i < table.tablecols.length; i++) {
+                context.beginPath();
+                context.rect(rect.x + interval, rect.y + interval * (i + 1) + subRectHeight * i, subRectWidth, subRectHeight);
+                table.tablecols[i].position = { x: rect.x + interval, y: rect.y + interval * (i + 1) + subRectHeight * i };
+                context.stroke();
+            }
+        }
+        function DrawRelationship(pointx, pointy) {
+            var radius = 30;
+            var canvas = document.getElementById('myCanvas');
+            var context = canvas.getContext('2d');
+            var sign = pointx.y > pointy.y ? 1 : -1;
+            context.lineWidth = 1;
+
+            context.beginPath();
+            context.moveTo(pointx.x, pointx.y);
+            if (pointx.y != pointy.y) {
+                context.lineTo((pointy.x + pointx.x) / 2 - radius, pointx.y);
+                context.arcTo((pointy.x + pointx.x) / 2, pointx.y, (pointy.x + pointx.x) / 2, pointx.y - sign * radius, radius);
+                context.lineTo((pointy.x + pointx.x) / 2, pointy.y + sign * radius);
+                context.arcTo((pointy.x + pointx.x) / 2, pointy.y, (pointy.x + pointx.x) / 2 + radius, pointy.y, radius);
+            }
+            context.lineTo(pointy.x, pointy.y);
+            context.stroke();
+        }
+
+
+        var tables = [{
+            tableid: 1, tablename: 'table1', tablecols: [
+                { colid: 1, colname: "col1" },
+                { colid: 2, colname: "col2" },
+                { colid: 3, colname: "col3" }
+            ]
+        },
+        {
+            tableid: 2, tablename: 'table2', tablecols: [
+               { colid: 1, colname: "col11" },
+               { colid: 2, colname: "col22" },
+               { colid: 3, colname: "col33" },
+               { colid: 4, colname: "col44" },
+               { colid: 5, colname: "col55" }
+            ]
+        },
+         {
+             tableid: 3, tablename: 'table3', tablecols: [
+                { colid: 1, colname: "col111" },
+                { colid: 2, colname: "col222" },
+                { colid: 3, colname: "col333" },
+                { colid: 4, colname: "col444" }
+             ]
+         }
+        ];
+        var relations = [
+        { start: { tableid: 1, colid: 1 }, end: { tableid: 2, colid: 2 } },
+        { start: { tableid: 1, colid: 2 }, end: { tableid: 2, colid: 2 } },
+        { start: { tableid: 1, colid: 3 }, end: { tableid: 2, colid: 2 } },
+        { start: { tableid: 2, colid: 1 }, end: { tableid: 3, colid: 3 } },
+        { start: { tableid: 2, colid: 2 }, end: { tableid: 3, colid: 3 } },
+        { start: { tableid: 2, colid: 3 }, end: { tableid: 3, colid: 3 } },
+        { start: { tableid: 1, colid: 3 }, end: { tableid: 2, colid: 3 } },
+        { start: { tableid: 1, colid: 3 }, end: { tableid: 2, colid: 4 } },
+        { start: { tableid: 1, colid: 3 }, end: { tableid: 2, colid: 5 } }
+        ];
+
+        function DrawRectFromTable(tables) {
+            var rectStart = { x: 20, y: 20 };
+            var intervalWidth = 300;
+            var intervalHeight = 0;
+            for (var i = 0; i < tables.length; i++) {
+                DrawRect(rectStart, tables[i]);
+                rectStart.x += intervalWidth;
+                rectStart.y += intervalHeight;
+            }
+        }
+        function DrawTextFromTable(tables) {
+            for (var i = 0; i < tables.length; i++) {
+                for (var j = 0; j < tables[i].tablecols.length; j++) {
+                    DrawText(tables[i].tablecols[j].position, tables[i].tablecols[j].colname);
+                }
+            }
+        }
+        function DrawRelationshipFromTable(tables, relations) {
+            function getPositionFromIndex(o, left) {
+                for (var i = 0; i < tables.length; i++) {
+                    if (tables[i].tableid == o.tableid) {
+                        for (var j = 0; j < tables[i].tablecols.length; j++) {
+                            if (tables[i].tablecols[j].colid == o.colid) {
+                                var old = tables[i].tablecols[j].position;
+                                var mid = { x: old.x, y: old.y };
+                                if (left) {
+                                    mid.x = old.x + subRectWidth;
+                                    mid.y = old.y + subRectHeight / 2;
+                                }
+                                else {
+                                    mid.y = old.y + subRectHeight / 2;
+                                }
+                                return mid;
+                            }
+                        }
+                    }
+                }
+            }
+            for (var i = 0; i < relations.length; i++) {
+                DrawRelationship(getPositionFromIndex(relations[i].start, true), getPositionFromIndex(relations[i].end, false));
+            }
+        }
+        DrawRectFromTable(tables);
+        DrawTextFromTable(tables);
+        DrawRelationshipFromTable(tables, relations);
+
+    </script>
+</body>
+</html>
